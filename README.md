@@ -36,3 +36,4 @@ git clone [URL]
 # JAR ausführen
 java -jar build/darkIT.jar
 
+## Team wird bald ergänzt
