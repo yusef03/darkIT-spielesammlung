@@ -94,9 +94,6 @@ public class LevelSelectionScreen extends JPanel {
 
     // Startet das gewählte Level
     private void levelStarten(int level) {
-        JOptionPane.showMessageDialog(this,
-                "Level " + level + " wird gestartet!\n(Noch nicht implementiert)",
-                "Level Start",
-                JOptionPane.INFORMATION_MESSAGE);
+        hauptFenster.starteLevel(level);
     }
 }

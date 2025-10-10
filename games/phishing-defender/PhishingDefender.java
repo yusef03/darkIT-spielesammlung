@@ -82,6 +82,14 @@ public class PhishingDefender extends JFrame {
         repaint();
     }
 
+    // Startet ein Level
+    public void starteLevel(int level) {
+        getContentPane().removeAll();
+        getContentPane().add(new GameScreen(this, level));
+        revalidate();
+        repaint();
+    }
+
     // Startet das Spiel
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
