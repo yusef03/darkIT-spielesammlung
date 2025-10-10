@@ -52,9 +52,13 @@ public class GameScreen extends JPanel {
         setupUI();
         zeigeNaechsteEmail();
 
-        // Tastatur-Input
+// Tastatur-Input
         setFocusable(true);
-        requestFocusInWindow();
+
+// Fokus mit Verzögerung setzen (nach dem UI-Aufbau)
+        SwingUtilities.invokeLater(() -> {
+            requestFocusInWindow();
+        });
         addKeyListener(new KeyAdapter() {
             public void keyPressed(KeyEvent e) {
                 if (e.getKeyCode() == KeyEvent.VK_A) {
@@ -186,6 +190,9 @@ public class GameScreen extends JPanel {
 
         aktuelleEmailIndex++;
         zeigeNaechsteEmail();
+
+        // WICHTIG: Fokus zurückholen!
+        requestFocusInWindow();
     }
 
     // Level erfolgreich abgeschlossen
