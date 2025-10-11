@@ -21,6 +21,8 @@ public class GameScreen extends JPanel {
     private int score;
     private int leben;
     private int maxLeben;
+    private int zeitProEmail;
+    private int verbleibendeSekunden;
 
     // UI Komponenten
     private JLabel scoreLabel;
@@ -28,6 +30,8 @@ public class GameScreen extends JPanel {
     private JTextArea emailAnzeigeArea;
     private JLabel absenderLabel;
     private JLabel betreffLabel;
+    private Timer timer;
+    private JLabel timerLabel;
 
     public GameScreen(PhishingDefender hauptFenster, int level) {
         this.hauptFenster = hauptFenster;
@@ -44,6 +48,15 @@ public class GameScreen extends JPanel {
             this.maxLeben = 5;
         }
         this.leben = maxLeben;
+
+        // Zeit pro Mail basierend auf Level
+        if (level == 1) {
+            this.zeitProEmail = 5;
+        } else if (level == 2) {
+            this.zeitProEmail = 3;
+        } else {
+            this.zeitProEmail = 2;
+        }
 
         // E-Mails für dieses Level laden
         EmailDatabase database = new EmailDatabase();
@@ -77,9 +90,9 @@ public class GameScreen extends JPanel {
         setLayout(new BorderLayout());
         setBackground(new Color(26, 26, 46));
 
-        // Oben: Score und Leben
+        // Oben: Timer, Score und Leben
         JPanel topPanel = new JPanel();
-        topPanel.setLayout(new GridLayout(1, 2));
+        topPanel.setLayout(new GridLayout(1, 3));
         topPanel.setBackground(new Color(26, 26, 46));
         topPanel.setBorder(BorderFactory.createEmptyBorder(10, 20, 10, 20));
 
@@ -92,7 +105,13 @@ public class GameScreen extends JPanel {
         lebenLabel.setForeground(Color.WHITE);
         lebenLabel.setHorizontalAlignment(SwingConstants.RIGHT);
 
+        timerLabel = new JLabel("Zeit: 5s");
+        timerLabel.setFont(new Font("Arial", Font.BOLD, 24));
+        timerLabel.setForeground(new Color(255, 107, 53));
+        timerLabel.setHorizontalAlignment(SwingConstants.CENTER);
+
         topPanel.add(scoreLabel);
+        topPanel.add(timerLabel);
         topPanel.add(lebenLabel);
 
         // Mitte: E-Mail Anzeige
@@ -165,11 +184,16 @@ public class GameScreen extends JPanel {
         betreffLabel.setText("Betreff: " + email.getBetreff());
         emailAnzeigeArea.setText(email.getNachricht());
 
+        starteTimer();
         requestFocusInWindow();
     }
 
     // Verarbeitet die Antwort des Spielers
     private void antwortGeben(boolean spielerSagtPhishing) {
+        // Timer stoppen
+        if (timer != null) {
+            timer.stop();
+        }
         Email email = emails.get(aktuelleEmailIndex);
         boolean istRichtig = (email.istPhishing() == spielerSagtPhishing);
 
@@ -215,5 +239,47 @@ public class GameScreen extends JPanel {
                 "Game Over",
                 JOptionPane.ERROR_MESSAGE);
         hauptFenster.zeigeLevelAuswahl();
+    }
+
+    // Startet den Timer für die aktuelle E-Mail
+    private void starteTimer() {
+        // Alten Timer stoppen falls vorhanden
+        if (timer != null) {
+            timer.stop();
+        }
+
+        verbleibendeSekunden = zeitProEmail;
+        timerLabel.setText("Zeit: " + verbleibendeSekunden + "s");
+
+        // Neuer Timer - jede Sekunde
+        timer = new Timer(1000, e -> {
+            verbleibendeSekunden--;
+            timerLabel.setText("Zeit: " + verbleibendeSekunden + "s");
+
+            if (verbleibendeSekunden <= 0) {
+                timer.stop();
+                zeitAbgelaufen();
+            }
+        });
+        timer.start();
+    }
+
+    // Zeit ist abgelaufen - zählt als falsche Antwort
+    private void zeitAbgelaufen() {
+        leben--;
+        lebenLabel.setText("Leben: " + leben + "/" + maxLeben);
+        JOptionPane.showMessageDialog(this,
+                "ZEIT ABGELAUFEN! -1 Leben",
+                "Zu langsam!",
+                JOptionPane.WARNING_MESSAGE);
+
+        if (leben <= 0) {
+            gameOver();
+            return;
+        }
+
+        aktuelleEmailIndex++;
+        zeigeNaechsteEmail();
+        requestFocusInWindow();
     }
 }
