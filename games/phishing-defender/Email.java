@@ -13,13 +13,15 @@ public class Email {
     private String betreff;
     private String nachricht;
     private boolean istPhishing;
+    private String tipp;
 
-    // Konstruktor - erstellt eine neue E-Mail
-    public Email(String absender, String betreff, String nachricht, boolean istPhishing) {
+
+    public Email(String absender, String betreff, String nachricht, boolean istPhishing, String tipp) {
         this.absender = absender;
         this.betreff = betreff;
         this.nachricht = nachricht;
         this.istPhishing = istPhishing;
+        this.tipp = tipp;
     }
 
     // Gibt den Absender zurück
@@ -41,6 +43,8 @@ public class Email {
     public boolean istPhishing() {
         return istPhishing;
     }
+
+    public String getTipp() { return tipp; }
 
     // Für Debugging - zeigt E-Mail als Text
     public String toString() {
