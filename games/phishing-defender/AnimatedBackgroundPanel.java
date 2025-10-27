@@ -33,12 +33,21 @@ public class AnimatedBackgroundPanel extends JPanel {
     }
 
     private void updateParticles() {
+        int w = getWidth();
+        int h = getHeight();
+
+        // Wichtig: Verhindert Fehler, bevor das Fenster gezeichnet wurde
+        if (w == 0 || h == 0) {
+            return;
+        }
+
         for (Particle p : particles) {
             p.update();
 
             // Wenn Partikel unten raus ist, oben neu starten
-            if (p.y > getHeight()) {
-                p.reset();
+            if (p.y > h) {
+                // ...jetzt mit der echten Breite und Höhe!
+                p.reset(w, h);
             }
         }
     }
@@ -77,12 +86,17 @@ public class AnimatedBackgroundPanel extends JPanel {
         Color color;
 
         Particle() {
-            reset();
+            // Startwerte (werden beim ersten Update sofort korrigiert)
+            reset(800, 600);
         }
 
-        void reset() {
-            x = random.nextInt(800);
-            y = -random.nextInt(600);
+        void reset(int panelWidth, int panelHeight) {
+            // Verhindert Fehler, wenn Fenster noch 0px breit ist
+            if (panelWidth <= 0) panelWidth = 1;
+            if (panelHeight <= 0) panelHeight = 1;
+
+            x = random.nextInt(panelWidth);
+            y = -random.nextInt(panelHeight);
             speed = 0.5f + random.nextFloat() * 2f;
             size = 2 + random.nextInt(4);
 

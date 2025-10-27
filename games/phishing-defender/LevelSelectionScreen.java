@@ -12,9 +12,11 @@ import java.awt.geom.RoundRectangle2D;
 public class LevelSelectionScreen extends JPanel {
 
     private PhishingDefender hauptFenster;
+    private StarsManager starsManager;
 
     public LevelSelectionScreen(PhishingDefender hauptFenster) {
         this.hauptFenster = hauptFenster;
+        this.starsManager = new StarsManager(hauptFenster.getSpielerName()); // MIT SPIELER-NAME!
         setLayout(new BorderLayout());
         setupUI();
     }
@@ -57,36 +59,38 @@ public class LevelSelectionScreen extends JPanel {
         cardsPanel.setLayout(new FlowLayout(FlowLayout.CENTER, 40, 30));
         cardsPanel.setOpaque(false);
 
-        // Level 1
+// Level 1
         cardsPanel.add(createLevelCard(
-                1, "ANFÄNGER", "🎯", "⭐⭐",
+                1, "ANFÄNGER", "🎯",
                 "10 E-Mails", "15 Sekunden", "LEICHT",
                 new Color(255, 107, 53), true
         ));
 
-        // Level 2
+// Level 2
         boolean level2Unlocked = hoechstes >= 2;
         cardsPanel.add(createLevelCard(
-                2, "FORTGESCHRITTEN", "🎯🎯", "⭐⭐⭐",
+                2, "FORTGESCHRITTEN", "🎯🎯",
                 "15 E-Mails", "3 Minuten", "MITTEL",
                 new Color(100, 150, 255), level2Unlocked
         ));
 
-        // Level 3
+// Level 3
         boolean level3Unlocked = hoechstes >= 3;
         cardsPanel.add(createLevelCard(
-                3, "EXPERTE", "🎯🎯🎯", "⭐⭐⭐⭐",
+                3, "EXPERTE", "🎯🎯🎯",
                 "20 E-Mails", "2 Minuten", "SCHWER",
                 new Color(200, 50, 100), level3Unlocked
         ));
 
-        // === BOTTOM: Zurück-Button ===
-        RoundedButton zurueckButton = new RoundedButton("← ZURÜCK");
-        zurueckButton.setFont(new Font("SansSerif", Font.BOLD, 20));
-        zurueckButton.setBackground(new Color(80, 85, 110));
-        zurueckButton.setColors(new Color(80, 85, 110), new Color(100, 105, 130));
-        zurueckButton.setForeground(Color.WHITE);
-        zurueckButton.setPreferredSize(new Dimension(200, 55));
+// === BOTTOM: Zurück-Button ===
+        JButton zurueckButton = Theme.createStyledButton(
+                "← ZURÜCK",
+                Theme.FONT_BUTTON_MEDIUM, // 18px
+                Theme.COLOR_BUTTON_GREY,
+                Theme.COLOR_BUTTON_GREY_HOVER,
+                Theme.PADDING_BUTTON_MEDIUM // 12px padding
+        );
+        zurueckButton.setPreferredSize(new Dimension(200, 55)); // Deine alte Größe
         zurueckButton.addActionListener(e -> hauptFenster.zeigeWelcomeScreen());
 
         JPanel bottomPanel = new JPanel();
@@ -101,8 +105,7 @@ public class LevelSelectionScreen extends JPanel {
         add(backgroundPanel);
     }
 
-    // Erstellt eine Level-Karte
-    private JPanel createLevelCard(int level, String name, String icon, String stars,
+    private JPanel createLevelCard(int level, String name, String icon,
                                    String emails, String time, String difficulty,
                                    Color accentColor, boolean unlocked) {
 
@@ -231,10 +234,23 @@ public class LevelSelectionScreen extends JPanel {
         nameLabel.setForeground(unlocked ? Color.WHITE : new Color(120, 120, 120));
         nameLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
 
-        // Stars
-        JLabel starsLabel = new JLabel(stars, JLabel.CENTER);
-        starsLabel.setFont(new Font("Arial", Font.PLAIN, 20));
-        starsLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+// === ECHTE STERNE aus StarsManager ===
+        int sterne = starsManager.getStarsForLevel(level);
+
+        JPanel sternePanel = new JPanel();
+        sternePanel.setOpaque(false);
+        sternePanel.setLayout(new FlowLayout(FlowLayout.CENTER, 3, 0));
+        sternePanel.setAlignmentX(Component.CENTER_ALIGNMENT);
+
+        for (int i = 1; i <= 3; i++) {
+            boolean erreicht = (i <= sterne);
+            String sternEmoji = erreicht ? "⭐" : "☆";
+
+            JLabel sternLabel = new JLabel(sternEmoji);
+            sternLabel.setFont(new Font("Arial", Font.PLAIN, 22));
+            sternLabel.setForeground(erreicht ? new Color(255, 215, 0) : new Color(70, 70, 70));
+            sternePanel.add(sternLabel);
+        }
 
         // Details
         JLabel emailsLabel = new JLabel("📧 " + emails, JLabel.CENTER);
@@ -264,7 +280,7 @@ public class LevelSelectionScreen extends JPanel {
         card.add(Box.createRigidArea(new Dimension(0, 5)));
         card.add(nameLabel);
         card.add(Box.createRigidArea(new Dimension(0, 10)));
-        card.add(starsLabel);
+        card.add(sternePanel);  // ← sternePanel statt starsLabel!
         card.add(Box.createRigidArea(new Dimension(0, 15)));
         card.add(emailsLabel);
         card.add(Box.createRigidArea(new Dimension(0, 5)));

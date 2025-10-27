@@ -1,183 +1,249 @@
-package games.phishingdefender;
+package games.phishingdefender; // Dein Package-Name bleibt gleich
 
 import javax.swing.*;
+import javax.swing.border.Border;
 import java.awt.*;
 import java.util.List;
+import java.util.*;
+import java.util.stream.Collectors;
 
 /**
- * Phishing Defender - HighscoreScreen Class
- * Zeigt die Top 10 Highscores
+ * Highscore Screen - Sauberes & Elegantes Redesign
+ *
+ * Behält die Logik und den animierten Hintergrund bei,
+ * ersetzt aber die UI-Komponenten durch ein minimalistischeres,
+ * gut lesbares Design.
  */
 public class HighscoreScreen extends JPanel {
 
     private PhishingDefender hauptFenster;
-    private HighscoreManager highscoreManager;
+    private HighscoreManager manager;
+    private String currentPlayer;
+
+    // Farbpalette für ein sauberes, dunkles Design
+    private static final Color COLOR_BACKGROUND = new Color(25, 25, 30, 200); // Semi-transparentes Dunkelgrau
+    private static final Color COLOR_TEXT_PRIMARY = new Color(230, 230, 230); // Fast Weiß
+    private static final Color COLOR_TEXT_SECONDARY = new Color(160, 160, 160); // Helles Grau
+    private static final Color COLOR_HIGHLIGHT = new Color(100, 220, 255); // Sanftes Blau-Highlight
+    private static final Color COLOR_SEPARATOR = new Color(70, 70, 80); // Trennlinie
+    private static final Color COLOR_PLAYER_HIGHLIGHT_BG = new Color(45, 65, 80, 200); // Hintergrund für Spieler
+
+    private static final Color CYBER_CYAN = new Color(0, 255, 255);
+    private static final Color CYBER_GREEN = new Color(0, 255, 100);
 
     public HighscoreScreen(PhishingDefender hauptFenster) {
+        // === LOGIK (UNVERÄNDERT) ===
         this.hauptFenster = hauptFenster;
-        this.highscoreManager = new HighscoreManager();
+        this.currentPlayer = hauptFenster.getSpielerName();
+        this.manager = new HighscoreManager();
+        // ============================
 
+        // Grund-Layout
         setLayout(new BorderLayout());
         setupUI();
     }
 
     private void setupUI() {
-        // Animierter Hintergrund (wie Welcome Screen!)
+        // 1. Hintergrund (wie gewünscht beibehalten)
         AnimatedBackgroundPanel backgroundPanel = new AnimatedBackgroundPanel();
         backgroundPanel.setLayout(new BorderLayout());
+        backgroundPanel.setBorder(BorderFactory.createEmptyBorder(30, 60, 30, 60)); // Mehr Rand
 
-        // === TITEL ===
-        JLabel titel = new JLabel("🏆 HIGHSCORES", JLabel.CENTER);
-        titel.setFont(new Font("SansSerif", Font.BOLD, 48));
-        titel.setForeground(new Color(255, 140, 80));
-        titel.setBorder(BorderFactory.createEmptyBorder(30, 0, 20, 0));
+// === 2. HEADER (Dein futuristischer Titel) ===
+        JPanel topPanel = new JPanel();
+        topPanel.setLayout(new BoxLayout(topPanel, BoxLayout.Y_AXIS));
+        topPanel.setOpaque(false);
+        topPanel.setBorder(BorderFactory.createEmptyBorder(35, 50, 20, 50)); // Dein Border
 
-        // === HIGHSCORE TABELLE ===
-        JPanel tablePanel = new JPanel();
-        tablePanel.setLayout(new BorderLayout());
-        tablePanel.setBackground(new Color(25, 30, 50, 230));
-        tablePanel.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(new Color(100, 180, 255, 150), 3),
-                BorderFactory.createEmptyBorder(20, 30, 20, 30)
-        ));
-        tablePanel.setMaximumSize(new Dimension(900, 550));
+        JLabel titleLabel = new JLabel("🏆 HIGHSCORES", JLabel.CENTER);
+        titleLabel.setFont(new Font("SansSerif", Font.BOLD, 50));
+        titleLabel.setForeground(CYBER_CYAN);
+        titleLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
 
-        // Top 10 laden
-        List<HighscoreEntry> top10 = highscoreManager.getTop10();
+        JLabel subtitleLabel = new JLabel(">>> ELITE CYBER DETECTIVES <<<", JLabel.CENTER);
+        subtitleLabel.setFont(new Font("Monospaced", Font.BOLD, 15));
+        subtitleLabel.setForeground(CYBER_GREEN);
+        subtitleLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
 
-        if (top10.isEmpty()) {
-            // Keine Highscores vorhanden
-            JLabel keineScores = new JLabel(
-                    "<html><center>" +
-                            "<span style='font-size: 18px; color: #AAAAAA;'>" +
-                            "Noch keine Highscores vorhanden!<br><br>" +
-                            "Spiele dein erstes Level um in die Rangliste zu kommen! 🎮" +
-                            "</span></center></html>",
-                    JLabel.CENTER
-            );
-            tablePanel.add(keineScores, BorderLayout.CENTER);
+        topPanel.add(titleLabel);
+        topPanel.add(Box.createRigidArea(new Dimension(0, 8)));
+        topPanel.add(subtitleLabel);
 
+        // WICHTIG: Fügt dein Panel dem Hintergrund hinzu
+        backgroundPanel.add(topPanel, BorderLayout.NORTH);
+
+        // === 3. LISTE DER SCORES ===
+        JPanel listPanel = new JPanel();
+        listPanel.setLayout(new BoxLayout(listPanel, BoxLayout.Y_AXIS));
+        listPanel.setOpaque(false); // Transparent, damit man den Hintergrund sieht
+
+        // Hole die Logik (UNVERÄNDERT)
+        List<HighscoreEntry> uniqueScores = getBestScorePerPlayer();
+
+        if (uniqueScores.isEmpty()) {
+            JLabel emptyLabel = new JLabel("Noch keine Einträge vorhanden.", JLabel.CENTER);
+            emptyLabel.setFont(new Font("SansSerif", Font.ITALIC, 18));
+            emptyLabel.setForeground(COLOR_TEXT_SECONDARY);
+            emptyLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+            listPanel.add(emptyLabel);
         } else {
-            // Highscore-Einträge anzeigen
-            JPanel entriesPanel = new JPanel();
-            entriesPanel.setLayout(new BoxLayout(entriesPanel, BoxLayout.Y_AXIS));
-            entriesPanel.setOpaque(false);
+            // Erstelle für jeden Eintrag ein sauberes Panel
+            for (int i = 0; i < Math.min(10, uniqueScores.size()); i++) {
+                HighscoreEntry entry = uniqueScores.get(i);
+                boolean isDu = currentPlayer != null &&
+                        entry.getName().equalsIgnoreCase(currentPlayer);
 
-            for (int i = 0; i < top10.size(); i++) {
-                HighscoreEntry entry = top10.get(i);
-                JPanel entryPanel = createEntryPanel(i + 1, entry);
-                entriesPanel.add(entryPanel);
-
-                if (i < top10.size() - 1) {
-                    entriesPanel.add(Box.createRigidArea(new Dimension(0, 8)));
-                }
+                JPanel entryPanel = createElegantEntryPanel(i + 1, entry, isDu);
+                listPanel.add(entryPanel);
             }
-
-            JScrollPane scrollPane = new JScrollPane(entriesPanel);
-            scrollPane.setOpaque(false);
-            scrollPane.getViewport().setOpaque(false);
-            scrollPane.setBorder(null);
-            scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
-            scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
-
-// Scroll-Balken UNSICHTBAR machen!
-            scrollPane.getVerticalScrollBar().setPreferredSize(new Dimension(0, 0));
-            scrollPane.getVerticalScrollBar().setOpaque(false);
-
-            tablePanel.add(scrollPane, BorderLayout.CENTER);
         }
 
-        // === ZURÜCK BUTTON ===
-        RoundedButton zurueckButton = new RoundedButton("← ZURÜCK");
-        zurueckButton.setFont(new Font("SansSerif", Font.BOLD, 20));
-        zurueckButton.setBackground(new Color(80, 85, 110));
-        zurueckButton.setColors(new Color(80, 85, 110), new Color(100, 105, 130));
-        zurueckButton.setForeground(Color.WHITE);
-        zurueckButton.setPreferredSize(new Dimension(200, 50));
-        zurueckButton.setMaximumSize(new Dimension(200, 50));
-        zurueckButton.addActionListener(e -> hauptFenster.zeigeWelcomeScreen());
+        // ScrollPane, falls die Liste lang wird
+        JScrollPane scrollPane = new JScrollPane(listPanel);
+        scrollPane.setOpaque(false);
+        scrollPane.getViewport().setOpaque(false);
+        scrollPane.setBorder(null);
+        scrollPane.getVerticalScrollBar().setUnitIncrement(16);
+        backgroundPanel.add(scrollPane, BorderLayout.CENTER);
 
-        JPanel buttonPanel = new JPanel();
-        buttonPanel.setOpaque(false);
-        buttonPanel.setBorder(BorderFactory.createEmptyBorder(20, 0, 40, 0));
-        buttonPanel.add(zurueckButton);
 
-        // === CONTENT PANEL ===
-        JPanel contentPanel = new JPanel();
-        contentPanel.setLayout(new BoxLayout(contentPanel, BoxLayout.Y_AXIS));
-        contentPanel.setOpaque(false);
-        contentPanel.setBorder(BorderFactory.createEmptyBorder(20, 50, 20, 50));
+        // === 4. FOOTER (mit Zurück-Button) ===
+        JPanel footerPanel = new JPanel();
+        footerPanel.setLayout(new BoxLayout(footerPanel, BoxLayout.Y_AXIS));
+        footerPanel.setOpaque(false);
+        footerPanel.setBorder(BorderFactory.createEmptyBorder(30, 0, 10, 0));
 
-        titel.setAlignmentX(Component.CENTER_ALIGNMENT);
-        tablePanel.setAlignmentX(Component.CENTER_ALIGNMENT);
+        // Spieler-Statistik (Logik UNVERÄNDERT)
+        if (!uniqueScores.isEmpty()) {
+            int playerCount = uniqueScores.size();
+            int playerRank = findPlayerRank(uniqueScores);
 
-        contentPanel.add(titel);
-        contentPanel.add(tablePanel);
+            String statsText = playerCount + " Spieler";
+            if (playerRank > 0) {
+                statsText += "  •  Dein Rang: #" + playerRank;
+            }
 
-        backgroundPanel.add(contentPanel, BorderLayout.CENTER);
-        backgroundPanel.add(buttonPanel, BorderLayout.SOUTH);
+            JLabel statsLabel = new JLabel(statsText, JLabel.CENTER);
+            statsLabel.setFont(new Font("SansSerif", Font.PLAIN, 14));
+            statsLabel.setForeground(COLOR_TEXT_SECONDARY);
+            statsLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+            footerPanel.add(statsLabel);
+            footerPanel.add(Box.createRigidArea(new Dimension(0, 15)));
+        }
 
-        setLayout(new BorderLayout());
+// Standard-Button, jetzt über das Theme gesteuert
+        JButton backBtn = Theme.createStyledButton(
+                "Zurück zum Menü",
+                Theme.FONT_BUTTON_SMALL, // 16px
+                Theme.COLOR_BUTTON_GREY, // (80, 85, 110)
+                Theme.COLOR_BUTTON_GREY_HOVER, // (100, 105, 130)
+                Theme.PADDING_BUTTON_MEDIUM // 12px padding
+        );
+        backBtn.setAlignmentX(Component.CENTER_ALIGNMENT);
+
+        // Action Listener (UNVERÄNDERT)
+        backBtn.addActionListener(e -> hauptFenster.zeigeWelcomeScreen());
+        footerPanel.add(backBtn);
+
+        backgroundPanel.add(footerPanel, BorderLayout.SOUTH);
+
+        // Füge das Hauptpanel (den Hintergrund) hinzu
         add(backgroundPanel, BorderLayout.CENTER);
     }
 
-    // Erstellt ein einzelnes Highscore-Entry Panel
-    private JPanel createEntryPanel(int platz, HighscoreEntry entry) {
-        JPanel panel = new JPanel();
-        panel.setLayout(new BorderLayout(15, 0));
+    /**
+     * Erstellt ein einzelnes, sauberes Panel für einen Highscore-Eintrag.
+     * Ersetzt die alte "createEntryCard"-Methode.
+     */
+    private JPanel createElegantEntryPanel(int rank, HighscoreEntry entry, boolean isDu) {
+        JPanel panel = new JPanel(new BorderLayout(15, 0));
         panel.setOpaque(false);
-        panel.setBorder(BorderFactory.createEmptyBorder(8, 15, 8, 15));
+        //panel.setBackground(isDu ? COLOR_PLAYER_HIGHLIGHT_BG : COLOR_BACKGROUND);
+        panel.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createMatteBorder(0, 0, 1, 0, COLOR_SEPARATOR), // Untere Trennlinie
+                BorderFactory.createEmptyBorder(15, 20, 15, 20)  // Innenabstand
+        ));
+        // Verhindert, dass die Einträge in der Höhe wachsen
+        panel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 80)); // oder 85, wenn's immer noch knapp ist
 
-        // Farben für Top 3
-        Color textColor = Color.WHITE;
-        String medal = "";
 
-        if (platz == 1) {
-            textColor = new Color(255, 215, 0);  // Gold
-            medal = "🥇 ";
-            panel.setBackground(new Color(255, 215, 0, 30));
-            panel.setOpaque(true);
-        } else if (platz == 2) {
-            textColor = new Color(192, 192, 192);  // Silber
-            medal = "🥈 ";
-            panel.setBackground(new Color(192, 192, 192, 30));
-            panel.setOpaque(true);
-        } else if (platz == 3) {
-            textColor = new Color(205, 127, 50);  // Bronze
-            medal = "🥉 ";
-            panel.setBackground(new Color(205, 127, 50, 30));
-            panel.setOpaque(true);
-        }
+        // LINKS: Rang
+        JLabel rankLabel = new JLabel("#" + rank);
+        rankLabel.setFont(new Font("SansSerif", Font.BOLD, 22));
+        rankLabel.setForeground(rank <= 3 ? COLOR_HIGHLIGHT : COLOR_TEXT_SECONDARY); // Top 3 hervorheben
+        panel.add(rankLabel, BorderLayout.WEST);
 
-        // Platz
-        JLabel platzLabel = new JLabel(medal + "#" + platz);
-        platzLabel.setFont(new Font("Monospace", Font.BOLD, 16));
-        platzLabel.setForeground(textColor);
-        platzLabel.setPreferredSize(new Dimension(80, 30));
+        // MITTE: Name und Details
+        JPanel centerPanel = new JPanel();
+        centerPanel.setLayout(new BoxLayout(centerPanel, BoxLayout.Y_AXIS));
+        centerPanel.setOpaque(false);
 
-        // Name + Info
-        String info = String.format(
-                "<html><b style='font-size: 15px;'>%s</b>" +
-                        "<span style='font-size: 12px; color: #888888;'> | " +
-                        "⭐ %d Punkte | Level %d | %d%%</span></html>",
-                entry.getName(),
-                entry.getPunkte(),
-                entry.getLevel(),
-                entry.getGenauigkeit()
+        String displayName = entry.getName();
+        if (isDu) displayName += " (Du)";
+
+        JLabel nameLabel = new JLabel(displayName);
+        nameLabel.setFont(new Font("SansSerif", Font.BOLD, 18));
+        nameLabel.setForeground(isDu ? COLOR_HIGHLIGHT : COLOR_TEXT_PRIMARY);
+
+        JLabel detailsLabel = new JLabel(
+                "Level " + entry.getLevel() + " • " + entry.getGenauigkeit() + "% Genauigkeit"
         );
+        detailsLabel.setFont(new Font("SansSerif", Font.PLAIN, 14));
+        detailsLabel.setForeground(COLOR_TEXT_SECONDARY);
 
-        JLabel infoLabel = new JLabel(info);
-        infoLabel.setForeground(textColor);
+        centerPanel.add(nameLabel);
+        centerPanel.add(Box.createRigidArea(new Dimension(0, 4)));
+        centerPanel.add(detailsLabel);
+        panel.add(centerPanel, BorderLayout.CENTER);
 
-        // Datum rechts
-        JLabel datumLabel = new JLabel(entry.getDatum());
-        datumLabel.setFont(new Font("Monospace", Font.PLAIN, 14));
-        datumLabel.setForeground(new Color(150, 150, 150));
 
-        panel.add(platzLabel, BorderLayout.WEST);
-        panel.add(infoLabel, BorderLayout.CENTER);
-        panel.add(datumLabel, BorderLayout.EAST);
+        // RECHTS: Punkte
+        JLabel scoreLabel = new JLabel(String.format("%,d Pkt.", entry.getPunkte())); // Formatierter Score
+        scoreLabel.setFont(new Font("SansSerif", Font.BOLD, 20));
+        scoreLabel.setForeground(COLOR_HIGHLIGHT);
+        panel.add(scoreLabel, BorderLayout.EAST);
 
         return panel;
     }
+
+
+    // =======================================================================
+    // AB HIER: KEINE ÄNDERUNGEN. DIE LOGIK IST 100% IDENTISCH.
+    // =======================================================================
+
+    /**
+     * Filtert: Nur BESTER Score pro Spieler!
+     * (LOGIK UNVERÄNDERT)
+     */
+    private List<HighscoreEntry> getBestScorePerPlayer() {
+        Map<String, HighscoreEntry> best = new HashMap<>();
+
+        for (HighscoreEntry entry : manager.getTop10()) {
+            String key = entry.getName().toLowerCase();
+            if (!best.containsKey(key) || entry.getPunkte() > best.get(key).getPunkte()) {
+                best.put(key, entry);
+            }
+        }
+
+        return best.values().stream()
+                .sorted((a, b) -> b.getPunkte() - a.getPunkte())
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Findet den Rang des aktuellen Spielers.
+     * (LOGIK UNVERÄNDERT)
+     */
+    private int findPlayerRank(List<HighscoreEntry> scores) {
+        if (currentPlayer == null || currentPlayer.isEmpty()) return 0;
+        for (int i = 0; i < scores.size(); i++) {
+            if (scores.get(i).getName().equalsIgnoreCase(currentPlayer)) {
+                return i + 1;
+            }
+        }
+        return 0;
+    }
+
+    // Die alte "RoundedBorder" innere Klasse wurde entfernt,
+    // da sie für dieses Design nicht mehr benötigt wird.
 }

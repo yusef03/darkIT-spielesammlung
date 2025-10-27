@@ -15,6 +15,8 @@ public class ResultScreen extends JPanel {
     private int maxLeben;
     private int gesamtEmails;
     private boolean gewonnen;
+    private int erreichteSterne;
+    private StarsManager starsManager;
 
     public ResultScreen(PhishingDefender hauptFenster, int level, int score,
                         int leben, int maxLeben, int gesamtEmails, boolean gewonnen) {
@@ -25,6 +27,22 @@ public class ResultScreen extends JPanel {
         this.maxLeben = maxLeben;
         this.gesamtEmails = gesamtEmails;
         this.gewonnen = gewonnen;
+
+// Sterne berechnen (mit Spieler-Name!)
+        starsManager = new StarsManager(hauptFenster.getSpielerName());
+        int richtigeAntworten = score / 10; // 10 Punkte pro richtige Antwort
+        this.erreichteSterne = gewonnen ? StarsManager.berechneSterne(richtigeAntworten, gesamtEmails, leben, maxLeben) : 0;
+
+        // Sterne speichern (nur wenn gewonnen!)
+// Sterne speichern (nur wenn gewonnen!)
+        if (gewonnen) {
+            starsManager.updateStars(level, erreichteSterne);
+
+            // Highscore hinzufügen!
+            HighscoreManager highscoreManager = new HighscoreManager();
+            int genauigkeit = Math.min(100, (richtigeAntworten * 100) / gesamtEmails);
+            highscoreManager.hinzufuegen(hauptFenster.getSpielerName(), score, genauigkeit, level);
+        }
 
         setLayout(new BorderLayout());
         setupUI();
@@ -79,6 +97,46 @@ public class ResultScreen extends JPanel {
         statsPanel.add(createStatCard("🎯", "GENAUIGKEIT", genauigkeit + "%", new Color(100, 180, 255)));
         statsPanel.add(createStatCard("🏆", "RANG", "#" + rang + " von 26", new Color(255, 150, 50)));
 
+        // === STERNE PANEL (nur wenn gewonnen!) ===
+        JPanel sterneWrapper = new JPanel();
+        sterneWrapper.setOpaque(false);
+        sterneWrapper.setLayout(new BoxLayout(sterneWrapper, BoxLayout.Y_AXIS));
+        sterneWrapper.setBorder(BorderFactory.createEmptyBorder(15, 50, 15, 50));
+
+        if (gewonnen) {
+            // Titel
+            JLabel sterneTitel = new JLabel("ERREICHTE STERNE", JLabel.CENTER);
+            sterneTitel.setFont(new Font("SansSerif", Font.BOLD, 18));
+            sterneTitel.setForeground(new Color(180, 180, 180));
+            sterneTitel.setAlignmentX(Component.CENTER_ALIGNMENT);
+
+            // Sterne Container
+            JPanel sternePanel = new JPanel();
+            sternePanel.setOpaque(false);
+            sternePanel.setLayout(new FlowLayout(FlowLayout.CENTER, 15, 10));
+
+            // 3 Sterne erstellen
+            for (int i = 1; i <= 3; i++) {
+                boolean erreicht = (i <= erreichteSterne);
+                JLabel stern = createSternLabel(erreicht, i);
+                sternePanel.add(stern);
+            }
+
+            // Text unter Sternen
+            String sterneText = getSterneText(erreichteSterne);
+            JLabel sterneTextLabel = new JLabel(sterneText, JLabel.CENTER);
+            sterneTextLabel.setFont(new Font("SansSerif", Font.BOLD, 20));
+            sterneTextLabel.setForeground(new Color(255, 215, 0));
+            sterneTextLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+
+            sterneWrapper.add(sterneTitel);
+            sterneWrapper.add(Box.createRigidArea(new Dimension(0, 10)));
+            sterneWrapper.add(sternePanel);
+            sterneWrapper.add(Box.createRigidArea(new Dimension(0, 10)));
+            sterneWrapper.add(sterneTextLabel);
+        }
+
+
         // === BOTTOM: Buttons ===
         JPanel buttonPanel = new JPanel();
         buttonPanel.setLayout(new FlowLayout(FlowLayout.CENTER, 25, 30));
@@ -86,22 +144,26 @@ public class ResultScreen extends JPanel {
 
         if (gewonnen && level < 3) {
             // GEWONNEN + nicht letztes Level → Nächstes Level + Level Auswahl
-            RoundedButton naechstesButton = new RoundedButton("▶ NÄCHSTES LEVEL");
-            naechstesButton.setFont(new Font("SansSerif", Font.BOLD, 22));
-            naechstesButton.setBackground(new Color(80, 200, 120));
-            naechstesButton.setColors(new Color(80, 200, 120), new Color(100, 220, 140));
-            naechstesButton.setForeground(Color.WHITE);
+            JButton naechstesButton = Theme.createStyledButton(
+                    "▶ NÄCHSTES LEVEL",
+                    Theme.FONT_BUTTON_LARGE,
+                    Theme.COLOR_BUTTON_GREEN,
+                    Theme.COLOR_BUTTON_GREEN_HOVER,
+                    Theme.PADDING_BUTTON_LARGE
+            );
             naechstesButton.setPreferredSize(new Dimension(280, 65));
             naechstesButton.addActionListener(e -> {
                 hauptFenster.levelGeschafft(level);
                 hauptFenster.starteLevel(level + 1);
             });
 
-            RoundedButton auswahlButton = new RoundedButton("🎮 LEVEL AUSWAHL");
-            auswahlButton.setFont(new Font("SansSerif", Font.BOLD, 20));
-            auswahlButton.setBackground(new Color(80, 85, 110));
-            auswahlButton.setColors(new Color(80, 85, 110), new Color(100, 105, 130));
-            auswahlButton.setForeground(Color.WHITE);
+            JButton auswahlButton = Theme.createStyledButton(
+                    "🎮 LEVEL AUSWAHL",
+                    Theme.FONT_BUTTON_MEDIUM, // 18px (war 20)
+                    Theme.COLOR_BUTTON_GREY,
+                    Theme.COLOR_BUTTON_GREY_HOVER,
+                    Theme.PADDING_BUTTON_LARGE // Großes Padding
+            );
             auswahlButton.setPreferredSize(new Dimension(280, 65));
             auswahlButton.addActionListener(e -> {
                 hauptFenster.levelGeschafft(level);
@@ -122,17 +184,21 @@ public class ResultScreen extends JPanel {
             gratPanel.setOpaque(false);
             gratPanel.add(gratulationLabel);
 
-            RoundedButton auswahlButton = new RoundedButton("🏆 ZURÜCK ZUR LEVEL AUSWAHL");
-            auswahlButton.setFont(new Font("SansSerif", Font.BOLD, 22));
-            auswahlButton.setBackground(new Color(80, 200, 120));
-            auswahlButton.setColors(new Color(80, 200, 120), new Color(100, 220, 140));
-            auswahlButton.setForeground(Color.WHITE);
+            // HIER IST DIE ÄNDERUNG: JButton statt RoundedButton
+            JButton auswahlButton = Theme.createStyledButton(
+                    "🏆 ZURÜCK ZUR LEVEL AUSWAHL",
+                    Theme.FONT_BUTTON_LARGE, // 22px
+                    Theme.COLOR_BUTTON_GREEN,
+                    Theme.COLOR_BUTTON_GREEN_HOVER,
+                    Theme.PADDING_BUTTON_LARGE
+            );
             auswahlButton.setPreferredSize(new Dimension(400, 65));
             auswahlButton.addActionListener(e -> {
                 hauptFenster.levelGeschafft(level);
                 hauptFenster.zeigeLevelAuswahl();
             });
 
+            // DIESER TEIL HAT GEFEHLT:
             JPanel finalPanel = new JPanel();
             finalPanel.setLayout(new BoxLayout(finalPanel, BoxLayout.Y_AXIS));
             finalPanel.setOpaque(false);
@@ -142,23 +208,27 @@ public class ResultScreen extends JPanel {
             finalPanel.add(Box.createRigidArea(new Dimension(0, 20)));
             finalPanel.add(auswahlButton);
 
-            buttonPanel.add(finalPanel);
+            buttonPanel.add(finalPanel); // Jetzt existiert finalPanel
 
         } else {
             // VERLOREN → Wiederholen + Level Auswahl
-            RoundedButton wiederholenButton = new RoundedButton("🔄 WIEDERHOLEN");
-            wiederholenButton.setFont(new Font("SansSerif", Font.BOLD, 22));
-            wiederholenButton.setBackground(new Color(255, 140, 80));
-            wiederholenButton.setColors(new Color(255, 140, 80), new Color(255, 160, 100));
-            wiederholenButton.setForeground(Color.WHITE);
+            JButton wiederholenButton = Theme.createStyledButton(
+                    "🔄 WIEDERHOLEN",
+                    Theme.FONT_BUTTON_LARGE, // 22px
+                    Theme.COLOR_ACCENT_ORANGE,
+                    Theme.COLOR_ACCENT_ORANGE_HOVER,
+                    Theme.PADDING_BUTTON_LARGE
+            );
             wiederholenButton.setPreferredSize(new Dimension(280, 65));
             wiederholenButton.addActionListener(e -> hauptFenster.starteLevel(level));
 
-            RoundedButton auswahlButton = new RoundedButton("🎮 LEVEL AUSWAHL");
-            auswahlButton.setFont(new Font("SansSerif", Font.BOLD, 20));
-            auswahlButton.setBackground(new Color(80, 85, 110));
-            auswahlButton.setColors(new Color(80, 85, 110), new Color(100, 105, 130));
-            auswahlButton.setForeground(Color.WHITE);
+            JButton auswahlButton = Theme.createStyledButton(
+                    "🎮 LEVEL AUSWAHL",
+                    Theme.FONT_BUTTON_MEDIUM, // 18px (war 20)
+                    Theme.COLOR_BUTTON_GREY,
+                    Theme.COLOR_BUTTON_GREY_HOVER,
+                    Theme.PADDING_BUTTON_LARGE // Großes Padding
+            );
             auswahlButton.setPreferredSize(new Dimension(280, 65));
             auswahlButton.addActionListener(e -> hauptFenster.zeigeLevelAuswahl());
 
@@ -168,8 +238,17 @@ public class ResultScreen extends JPanel {
 
         statsWrapper.add(statsPanel);
 
+// Center Panel mit Stats + Sterne
+        JPanel centerPanel = new JPanel();
+        centerPanel.setLayout(new BoxLayout(centerPanel, BoxLayout.Y_AXIS));
+        centerPanel.setOpaque(false);
+        centerPanel.add(statsPanel);
+        if (gewonnen) {
+            centerPanel.add(sterneWrapper);
+        }
+
         backgroundPanel.add(topPanel, BorderLayout.NORTH);
-        backgroundPanel.add(statsWrapper, BorderLayout.CENTER);
+        backgroundPanel.add(centerPanel, BorderLayout.CENTER);
         backgroundPanel.add(buttonPanel, BorderLayout.SOUTH);
 
         add(backgroundPanel);
@@ -260,5 +339,42 @@ public class ResultScreen extends JPanel {
         }
 
         return Math.min(rang, 26);
+    }
+
+    // Erstellt ein Stern-Label (erreicht oder nicht)
+    private JLabel createSternLabel(boolean erreicht, int sternNummer) {
+        String emoji = erreicht ? "⭐" : "☆";
+
+        JLabel stern = new JLabel(emoji, JLabel.CENTER);
+        stern.setFont(new Font("Arial", Font.PLAIN, 60));
+        stern.setForeground(erreicht ? new Color(255, 215, 0) : new Color(80, 80, 80));
+
+        // Animation für erreichte Sterne
+        if (erreicht) {
+            Timer animTimer = new Timer(300 * sternNummer, e -> {
+                // Sound-Effekt (optional)
+                // Kurze Scale-Animation könnte hier hin
+                stern.setFont(new Font("Arial", Font.PLAIN, 70));
+                Timer scaleBack = new Timer(150, ev -> {
+                    stern.setFont(new Font("Arial", Font.PLAIN, 60));
+                });
+                scaleBack.setRepeats(false);
+                scaleBack.start();
+            });
+            animTimer.setRepeats(false);
+            animTimer.start();
+        }
+
+        return stern;
+    }
+
+    // Gibt passenden Text für Sterne-Anzahl
+    private String getSterneText(int sterne) {
+        switch (sterne) {
+            case 3: return "⭐⭐⭐ PERFEKT! MEISTERHAFT! 🏆";
+            case 2: return "⭐⭐ SEHR GUT! WEITER SO! 💪";
+            case 1: return "⭐ GESCHAFFT! VERSUCH'S NOCHMAL FÜR MEHR! 🎯";
+            default: return "";
+        }
     }
 }

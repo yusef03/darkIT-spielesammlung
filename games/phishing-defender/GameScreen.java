@@ -9,6 +9,8 @@ import javax.sound.sampled.AudioInputStream;
 import javax.sound.sampled.AudioSystem;
 import javax.sound.sampled.Clip;
 import java.io.File;
+import javax.swing.KeyStroke;
+
 
 /**
  * Phishing Defender - GameScreen Class
@@ -65,6 +67,7 @@ public class GameScreen extends JPanel {
     private JLabel timerLabel;
     private JLabel feedbackLabel;
     private JLabel tippLabel;
+    private JPanel pauseGlassPane;
 
     private Clip clipRichtig;
     private Clip clipFalsch;
@@ -73,6 +76,8 @@ public class GameScreen extends JPanel {
     private Clip clipGameOver;
     private FeedbackCard feedbackCard;
     private TippCard tippCard;
+    private PauseMenu pauseMenu;
+
 
     public GameScreen(PhishingDefender hauptFenster, int level) {
         this.hauptFenster = hauptFenster;
@@ -293,20 +298,24 @@ public class GameScreen extends JPanel {
         buttonPanel.setLayout(new FlowLayout(FlowLayout.CENTER, 40, 28));
         buttonPanel.setBackground(new Color(15, 20, 35));
 
-        RoundedButton sicherButton = new RoundedButton("✅ SICHER (A)");
-        sicherButton.setFont(new Font("SansSerif", Font.BOLD, 23));
-        sicherButton.setBackground(new Color(50, 180, 100));
-        sicherButton.setColors(new Color(50, 180, 100), new Color(60, 200, 120));
-        sicherButton.setForeground(Color.WHITE);
-        sicherButton.setPreferredSize(new Dimension(310, 75));
+        JButton sicherButton = Theme.createStyledButton(
+                "✅ SICHER (A)",
+                Theme.FONT_BUTTON_LARGE, // 22px
+                Theme.COLOR_BUTTON_GREEN,
+                Theme.COLOR_BUTTON_GREEN_HOVER,
+                Theme.PADDING_BUTTON_LARGE // 15px padding
+        );
+        sicherButton.setPreferredSize(new Dimension(310, 75)); // Deine alte Größe
         sicherButton.addActionListener(e -> antwortGeben(false));
 
-        RoundedButton phishingButton = new RoundedButton("⚠️ PHISHING (L)");
-        phishingButton.setFont(new Font("SansSerif", Font.BOLD, 23));
-        phishingButton.setBackground(new Color(255, 80, 80));
-        phishingButton.setColors(new Color(255, 80, 80), new Color(255, 110, 110));
-        phishingButton.setForeground(Color.WHITE);
-        phishingButton.setPreferredSize(new Dimension(310, 75));
+        JButton phishingButton = Theme.createStyledButton(
+                "⚠️ PHISHING (L)",
+                Theme.FONT_BUTTON_LARGE, // 22px
+                Theme.COLOR_BUTTON_RED,
+                Theme.COLOR_BUTTON_RED_HOVER,
+                Theme.PADDING_BUTTON_LARGE // 15px padding
+        );
+        phishingButton.setPreferredSize(new Dimension(310, 75)); // Deine alte Größe
         phishingButton.addActionListener(e -> antwortGeben(true));
 
         buttonPanel.add(sicherButton);
@@ -522,6 +531,16 @@ public class GameScreen extends JPanel {
         okButton.setPreferredSize(new Dimension(180, 50));
         okButton.addActionListener(e -> firewallDialog.dispose());
 
+        // ENTER-Taste Support!
+        okButton.registerKeyboardAction(
+                e -> firewallDialog.dispose(),
+                KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0),
+                JComponent.WHEN_IN_FOCUSED_WINDOW
+        );
+
+        // Dialog auf Enter reagieren lassen
+        firewallDialog.getRootPane().setDefaultButton(okButton);
+
         JPanel buttonPanel = new JPanel();
         buttonPanel.setOpaque(false);
         buttonPanel.add(okButton);
@@ -556,163 +575,154 @@ public class GameScreen extends JPanel {
     private void pausieren() {
         isPausiert = true;
 
-        // Timer komplett stoppen
+        // Timer stoppen
         if (timer != null) {
             timer.stop();
-            timer = null;
         }
 
-        // Pause-Overlay erstellen
-        pauseOverlay = new JPanel();
-        pauseOverlay.setLayout(new BorderLayout());
-        pauseOverlay.setBackground(new Color(0, 0, 0, 180));
+        // Pause-Menü erstellen
+        pauseMenu = new PauseMenu(this, score, leben, verbleibendeSekunden);
 
-        // Pause-Text
-        JLabel pauseLabel = new JLabel("PAUSIERT", JLabel.CENTER);
-        pauseLabel.setFont(new Font("Arial", Font.BOLD, 48));
-        pauseLabel.setForeground(Color.WHITE);
+        // GlassPane vorbereiten
+        pauseGlassPane = new JPanel(new BorderLayout());
+        pauseGlassPane.setOpaque(false);
+        pauseGlassPane.add(pauseMenu, BorderLayout.CENTER);
 
-        // Info-Text
-        String tasteName = KeyEvent.getKeyText(TASTE_PAUSE);
-        String zurueckName = KeyEvent.getKeyText(TASTE_ZURUECK);
-
-        JLabel infoLabel = new JLabel(
-                "<html><center>" +
-                        tasteName + " = Fortsetzen<br>" +
-                        zurueckName + " = Hauptmenü" +
-                        "</center></html>",
-                JLabel.CENTER
-        );
-        infoLabel.setFont(new Font("Arial", Font.PLAIN, 20));
-        infoLabel.setForeground(Color.WHITE);
-
-        // Panel zusammenbauen
-        JPanel textPanel = new JPanel();
-        textPanel.setLayout(new GridLayout(2, 1, 0, 20));
-        textPanel.setOpaque(false);
-        textPanel.add(pauseLabel);
-        textPanel.add(infoLabel);
-
-        pauseOverlay.add(textPanel, BorderLayout.CENTER);
-
-        // Overlay über alles legen mit GlassPane
-        JRootPane rootPane = SwingUtilities.getRootPane(this);
-        if (rootPane != null) {
-            rootPane.setGlassPane(pauseOverlay);
-            pauseOverlay.setVisible(true);
-
-            // GlassPane muss Inputs empfangen
-            pauseOverlay.setFocusable(true);
-            pauseOverlay.requestFocusInWindow();
-
-            // KeyListener für Pause-Screen
-            pauseOverlay.addKeyListener(new KeyAdapter() {
-                public void keyPressed(KeyEvent e) {
-                    if (e.getKeyCode() == TASTE_PAUSE) {
-                        fortsetzen();
-                    } else if (e.getKeyCode() == TASTE_ZURUECK) {
-                        // Timer komplett beenden
-                        if (timer != null) {
-                            timer.stop();
-                            timer = null;
-                        }
-                        isPausiert = false;
-
-                        // Overlay entfernen OHNE fortsetzen()
-                        JRootPane rootPane = SwingUtilities.getRootPane(pauseOverlay);
-                        if (rootPane != null) {
-                            rootPane.getGlassPane().setVisible(false);
-                        }
-                        pauseOverlay = null;
-
-                        hauptFenster.zeigeLevelAuswahl();
-                    }
-                }
-            });
+        // GlassPane aktivieren
+        JFrame frame = (JFrame) SwingUtilities.getWindowAncestor(this);
+        if (frame != null) {
+            frame.setGlassPane(pauseGlassPane);
+            frame.getGlassPane().setVisible(true);
         }
     }
 
     // Setzt das Spiel fort
-    private void fortsetzen() {
+    public void fortsetzen() {
         isPausiert = false;
 
-        // Overlay entfernen
-        JRootPane rootPane = SwingUtilities.getRootPane(this);
-        if (rootPane != null && pauseOverlay != null) {
-            rootPane.getGlassPane().setVisible(false);
-            pauseOverlay = null;
+        // GlassPane verstecken
+        JFrame frame = (JFrame) SwingUtilities.getWindowAncestor(this);
+        if (frame != null && frame.getGlassPane() != null) {
+            frame.getGlassPane().setVisible(false);
         }
 
-// Timer neu starten
-        starteTimer();
+        // Cleanup
+        pauseMenu = null;
+        pauseGlassPane = null;
 
-        // Fokus zurück mit Verzögerung
-        SwingUtilities.invokeLater(() -> {
-            requestFocusInWindow();
-        });
+        // Timer fortsetzen
+        if (timer != null && !timer.isRunning()) {
+            timer.start();
+        }
+
+        // Focus zurück
+        SwingUtilities.invokeLater(() -> requestFocusInWindow());
+    }
+
+
+    // Level neu starten
+    public void levelNeuStarten() {
+        if (timer != null) {
+            timer.stop();
+        }
+        isPausiert = false;
+
+        // GlassPane verstecken
+        JFrame frame = (JFrame) SwingUtilities.getWindowAncestor(this);
+        if (frame != null && frame.getGlassPane() != null) {
+            frame.getGlassPane().setVisible(false);
+        }
+
+        // Cleanup
+        pauseMenu = null;
+        pauseGlassPane = null;
+
+        // Level neu starten
+        hauptFenster.starteLevel(level);
+    }
+
+    // Zum Hauptmenü zurück
+    public void zumHauptmenue() {
+        if (timer != null) {
+            timer.stop();
+        }
+        isPausiert = false;
+
+        // GlassPane verstecken
+        JFrame frame = (JFrame) SwingUtilities.getWindowAncestor(this);
+        if (frame != null && frame.getGlassPane() != null) {
+            frame.getGlassPane().setVisible(false);
+        }
+
+        // Cleanup
+        pauseMenu = null;
+        pauseGlassPane = null;
+
+        // Zum Hauptmenü
+        hauptFenster.zeigeLevelAuswahl();
+    }
+
+
+    /**
+     * Helfer-Methode, um Code-Duplikate in zeigeFeedbackRichtig/Falsch zu vermeiden.
+     * Nimmt eine (rote oder grüne) FeedbackCard, löscht die alte und zeigt die neue an.
+     */
+    private void zeigeFeedbackCard(FeedbackCard neueCard) {
+        // Finde das Panel (feedbackPanel), in dem die Karten liegen
+        Container parent = feedbackCard.getParent();
+
+        if (parent instanceof JPanel) {
+            JPanel feedbackPanel = (JPanel) parent;
+            feedbackPanel.removeAll(); // Lösche alte Cards
+
+            // Füge die neuen Komponenten hinzu
+            neueCard.setAlignmentX(Component.CENTER_ALIGNMENT);
+            tippCard.setAlignmentX(Component.CENTER_ALIGNMENT);
+
+            feedbackPanel.add(neueCard);
+            feedbackPanel.add(Box.createRigidArea(new Dimension(0, 10)));
+            feedbackPanel.add(tippCard);
+
+            // UI aktualisieren
+            feedbackPanel.revalidate();
+            feedbackPanel.repaint();
+
+            // Referenz auf die neue Karte speichern (wichtig!)
+            feedbackCard = neueCard;
+        }
+
+        // Animation starten
+        feedbackCard.showWithAnimation();
     }
 
     private void zeigeFeedbackRichtig(int punkte) {
         playSound(clipRichtig);
 
-        // Erstelle neue FeedbackCard
+        // 1. Karte erstellen
         FeedbackCard neueCard = new FeedbackCard("✅", "RICHTIG!  +" + punkte + " Punkte", new Color(50, 180, 100));
 
-        // Finde das feedbackPanel und ersetze die alte Card
-        Container parent = feedbackCard.getParent();
-        if (parent instanceof JPanel) {
-            JPanel feedbackPanel = (JPanel) parent;
-            feedbackPanel.removeAll();
+        // 2. Helfer-Methode aufrufen (die die ganze UI-Arbeit macht)
+        zeigeFeedbackCard(neueCard);
 
-            neueCard.setAlignmentX(Component.CENTER_ALIGNMENT);
-            tippCard.setAlignmentX(Component.CENTER_ALIGNMENT);
-
-            feedbackPanel.add(neueCard);
-            feedbackPanel.add(Box.createRigidArea(new Dimension(0, 10)));
-            feedbackPanel.add(tippCard);
-
-            feedbackPanel.revalidate();
-            feedbackPanel.repaint();
-
-            feedbackCard = neueCard;
-        }
-
-        feedbackCard.showWithAnimation();
-
+        // 3. Timer starten
         Timer hideTimer = new Timer(1200, e -> feedbackCard.setVisible(false));
         hideTimer.setRepeats(false);
         hideTimer.start();
     }
 
-    // Zeigt rotes Feedback für falsche Antwort
     private void zeigeFeedbackFalsch(String grund) {
         playSound(clipFalsch);
 
-        // Erstelle neue FeedbackCard
+        // 1. Karte erstellen
         FeedbackCard neueCard = new FeedbackCard("❌", grund, new Color(220, 50, 50));
 
-        // Finde das feedbackPanel und ersetze die alte Card
-        Container parent = feedbackCard.getParent();
-        if (parent instanceof JPanel) {
-            JPanel feedbackPanel = (JPanel) parent;
-            feedbackPanel.removeAll();
+        // 2. Helfer-Methode aufrufen
+        zeigeFeedbackCard(neueCard);
 
-            neueCard.setAlignmentX(Component.CENTER_ALIGNMENT);
-            tippCard.setAlignmentX(Component.CENTER_ALIGNMENT);
-
-            feedbackPanel.add(neueCard);
-            feedbackPanel.add(Box.createRigidArea(new Dimension(0, 10)));
-            feedbackPanel.add(tippCard);
-
-            feedbackPanel.revalidate();
-            feedbackPanel.repaint();
-
-            feedbackCard = neueCard;
-        }
-
-        feedbackCard.showWithAnimation();
+        // 3. Tipp anzeigen (das ist der einzige Unterschied zu "Richtig")
         zeigeTipp();
 
+        // 4. Timer starten
         Timer hideTimer = new Timer(2800, e -> feedbackCard.setVisible(false));
         hideTimer.setRepeats(false);
         hideTimer.start();
@@ -739,23 +749,24 @@ public class GameScreen extends JPanel {
         clipGameOver = soundLaden("game_over.wav");
     }
 
-    // Lädt einen Sound und gibt Clip zurück
     private Clip soundLaden(String dateiname) {
         try {
-            File soundDatei = new File("games/phishing-defender/assets/sounds/" + dateiname);
+            // Der Pfad MUSS mit einem / beginnen (heißt: suche ab dem Root deines "src" Ordners)
+            java.net.URL soundURL = getClass().getResource("/games/phishingdefender/assets/sounds/" + dateiname);
 
-            if (!soundDatei.exists()) {
-                System.out.println("Sound nicht gefunden: " + dateiname);
+            if (soundURL == null) {
+                System.out.println("Sound nicht gefunden (als Ressource): " + dateiname);
                 return null;
             }
 
-            AudioInputStream audioIn = AudioSystem.getAudioInputStream(soundDatei);
+            AudioInputStream audioIn = AudioSystem.getAudioInputStream(soundURL);
             Clip clip = AudioSystem.getClip();
             clip.open(audioIn);
             return clip;
 
         } catch (Exception e) {
             System.out.println("Fehler beim Laden von " + dateiname + ": " + e.getMessage());
+            e.printStackTrace(); // Gut für Debugging
             return null;
         }
     }

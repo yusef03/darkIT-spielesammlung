@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.io.File;
 
 /**
  * Phishing Defender - HighscoreManager Class
@@ -16,9 +17,12 @@ import java.util.List;
  */
 public class HighscoreManager {
 
-    private static final String DATEI_NAME = "games/phishing-defender/highscores.txt";
-    private List<HighscoreEntry> highscores;
+    // NEU: Der korrekte, systemunabhängige Speicherpfad
+    private static final String USER_HOME = System.getProperty("user.home");
+    private static final String SAVE_DIR_PATH = USER_HOME + File.separator + ".phishingDefenderData";
+    private static final String DATEI_NAME = SAVE_DIR_PATH + File.separator + "highscores.txt";
 
+    private List<HighscoreEntry> highscores;
     // Konstruktor - lädt Highscores beim Start
     public HighscoreManager() {
         highscores = new ArrayList<>();
@@ -27,6 +31,12 @@ public class HighscoreManager {
 
     // Lädt Highscores aus Datei
     private void laden() {
+        // Erstelle den NEUEN Ordner im Home-Verzeichnis
+        File dataDir = new File(SAVE_DIR_PATH); //
+        if (!dataDir.exists()) {
+            dataDir.mkdirs();
+        }
+
         File datei = new File(DATEI_NAME);
 
         // Datei existiert nicht? Dann erstelle leere Liste

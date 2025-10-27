@@ -16,14 +16,14 @@ public class MusicManager {
         if (isPlaying) return;
 
         try {
-            File musicFile = new File("games/phishing-defender/assets/sounds/menu_music.wav");
+            java.net.URL musicURL = MusicManager.class.getResource("/games/phishingdefender/assets/sounds/menu_music.wav");
 
-            if (!musicFile.exists()) {
+            if (musicURL == null) {
                 System.out.println("Menu Music nicht gefunden!");
                 return;
             }
 
-            AudioInputStream audioIn = AudioSystem.getAudioInputStream(musicFile);
+            AudioInputStream audioIn = AudioSystem.getAudioInputStream(musicURL);
             musicClip = AudioSystem.getClip();
             musicClip.open(audioIn);
 

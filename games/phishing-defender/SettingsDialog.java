@@ -104,13 +104,15 @@ public class SettingsDialog extends JDialog {
         settingsPanel.add(musicPanel);
         settingsPanel.add(volumePanel);
 
-        // Close Button
-        RoundedButton closeButton = new RoundedButton("✓ SCHLIESSEN");
-        closeButton.setFont(new Font("SansSerif", Font.BOLD, 16));
-        closeButton.setBackground(new Color(80, 85, 110));
-        closeButton.setColors(new Color(80, 85, 110), new Color(100, 105, 130));
-        closeButton.setForeground(Color.WHITE);
-        closeButton.setPreferredSize(new Dimension(150, 45));
+// Close Button
+        JButton closeButton = Theme.createStyledButton(
+                "✓ SCHLIESSEN",
+                Theme.FONT_BUTTON_SMALL, // 16px
+                Theme.COLOR_BUTTON_GREY,
+                Theme.COLOR_BUTTON_GREY_HOVER,
+                Theme.PADDING_BUTTON_MEDIUM // 12px padding
+        );
+        closeButton.setPreferredSize(new Dimension(150, 45)); // Deine alte Größe
         closeButton.setAlignmentX(Component.CENTER_ALIGNMENT);
         closeButton.addActionListener(e -> dispose());
 

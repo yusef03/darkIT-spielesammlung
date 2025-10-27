@@ -134,25 +134,29 @@ public class NameInputScreen extends JPanel {
         gbc.insets = new Insets(20, 50, 30, 50);
         mainContent.add(inputBox, gbc);
 
-        // === BUTTONS ===
-        RoundedButton losButton = new RoundedButton("▶ LOS!");
-        losButton.setFont(new Font("SansSerif", Font.BOLD, 22));
-        losButton.setBackground(new Color(255, 107, 53));
-        losButton.setColors(new Color(255, 107, 53), new Color(255, 140, 80));
-        losButton.setForeground(Color.WHITE);
-        losButton.setPreferredSize(new Dimension(200, 55));
+// === BUTTONS ===
+        JButton losButton = Theme.createStyledButton(
+                "▶ LOS!",
+                Theme.FONT_BUTTON_LARGE, // 22px
+                Theme.COLOR_ACCENT_ORANGE,
+                Theme.COLOR_ACCENT_ORANGE_HOVER,
+                Theme.PADDING_BUTTON_LARGE // 15px padding
+        );
+        losButton.setPreferredSize(new Dimension(200, 55)); // Deine alte Größe
         losButton.addActionListener(e -> submitName());
 
         gbc.gridy = 3;
         gbc.insets = new Insets(10, 0, 10, 0);
         mainContent.add(losButton, gbc);
 
-        RoundedButton zurueckButton = new RoundedButton("← ZURÜCK");
-        zurueckButton.setFont(new Font("SansSerif", Font.BOLD, 18));
-        zurueckButton.setBackground(new Color(80, 85, 110));
-        zurueckButton.setColors(new Color(80, 85, 110), new Color(100, 105, 130));
-        zurueckButton.setForeground(Color.WHITE);
-        zurueckButton.setPreferredSize(new Dimension(180, 50));
+        JButton zurueckButton = Theme.createStyledButton(
+                "← ZURÜCK",
+                Theme.FONT_BUTTON_MEDIUM, // 18px
+                Theme.COLOR_BUTTON_GREY,
+                Theme.COLOR_BUTTON_GREY_HOVER,
+                Theme.PADDING_BUTTON_MEDIUM // 12px padding
+        );
+        zurueckButton.setPreferredSize(new Dimension(180, 50)); // Deine alte Größe
         zurueckButton.addActionListener(e -> hauptFenster.zeigeWelcomeScreen());
 
         gbc.gridy = 4;
