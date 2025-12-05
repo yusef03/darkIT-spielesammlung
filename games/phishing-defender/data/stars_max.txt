@@ -1,3 +1,0 @@
-level1=3
-level2=0
-level3=0
